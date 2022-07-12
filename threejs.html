@@ -4,6 +4,28 @@
 <head>
 	<meta charset="utf-8">
 	<title>3D Visualization of a Convolutional Neural Network</title>
+	<link rel="stylesheet" href="css/drawingboard2.css">
+	<link rel="stylesheet" href="css/main5.css">
+	<link rel="stylesheet" type="text/css" href="css/katex.min.css">
+
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+	<script src="js/drawingboard/utils.js"></script>
+	<script src="js/drawingboard/board.js"></script>
+	<script src="js/drawingboard/controls/control.js"></script>
+	<script src="js/drawingboard/controls/color.js"></script>
+	<script src="js/drawingboard/controls/drawingmode.js"></script>
+	<script src="js/drawingboard/controls/navigation.js"></script>
+	<script src="js/drawingboard/controls/size.js"></script>
+	<script src="js/drawingboard/controls/download.js"></script>
+
+	<script src="js/nn/convnet.js"></script>
+	<script src="js/nn/nn_funcs_merge4.js"></script>
+	<script src="js/createText_func.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="css/katex.min.css">
+	<script type="text/javascript" src="js/katex.min.js"></script>
 	<style>
 		body {
 			margin: 0;
@@ -15,152 +37,179 @@
 <body>
 	<script src="js/three.js"></script>
 	<script src="js/OrbitControls.js"></script>
-	<script>
-		const scene = new THREE.Scene()
 
-		var spot = new THREE.SpotLight(0xffffff);
-		spot.position.set(400, 500, 200);
-		scene.add(spot);
+	<div id="canvasContainer">
+		<!--style="visibility: hidden">-->
+		<div id="drawingInterface">
+			<div class="instructions">Draw your number here</div>
+			<div class="board" id="custom-board"></div>
+			<div class="drawingOutput">
+				<div class="row">
+					<div class="info">Downsampled drawing:</div>
+					<div class="tinyBoard">
+						<canvas id="tiny"></canvas>
+					</div>
+				</div>
+				<div class="row">
+					<div class="info cell">First guess:</div>
+					<div id="ans1" class="ans cell"></div>
+				</div>
+				<div class="row cell">
+					<div class="info cell">Second guess:</div>
+					<div id="ans2" class="ans cell"></div>
+				</div>
+			</div>
+		</div>
 
-		var ambient = new THREE.AmbientLight(0x444444);
-		scene.add(ambient);
 
-		var axesHelper = new THREE.AxesHelper(500);
-		scene.add(axesHelper);
 
-		/**
-		 * Input layer
-		 */
-		var box = new THREE.BoxGeometry(10, 10, 10);
-		for (var i = 0; i < 32; i++) {
-			for (var x = 0; x < 32; x++) {//32*32 input
+		<script>
+			
+			const scene = new THREE.Scene()
+
+			var spot = new THREE.SpotLight(0xffffff);
+			spot.position.set(400, 500, 200);
+			scene.add(spot);
+
+			var ambient = new THREE.AmbientLight(0x444444);
+			scene.add(ambient);
+
+			var axesHelper = new THREE.AxesHelper(500);
+			scene.add(axesHelper);
+
+			/**
+			 * Input layer
+			 */
+			var box = new THREE.BoxGeometry(10, 10, 10);
+			for (var i = 0; i < 32; i++) {
+				for (var x = 0; x < 32; x++) {//32*32 input
+					var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
+					var mesh = new THREE.Mesh(box, material);
+					mesh.position.set(-192 + 12 * i, -300, -192 + 12 * x);//separate by 2
+					scene.add(mesh);
+				}
+			}
+
+			/**
+			 * 1st convolutional layer
+			 */
+			var box = new THREE.BoxGeometry(10, 10, 10);
+			for (var j = 0; j < 6; j++) {
+				for (var i = 0; i < 28; i++) {
+					for (var x = 0; x < 28; x++) {//28*28 input
+						var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
+						var mesh = new THREE.Mesh(box, material);
+						mesh.position.set(-1164 + 12 * i + 400 * j, -150, -168 + 12 * x);//separate by 12
+						scene.add(mesh);
+					}
+				}
+			}
+
+			/**
+			 * 1st downsampling layer
+			 */
+			var box = new THREE.BoxGeometry(10, 10, 10);
+			for (var j = 0; j < 6; j++) {
+				for (var i = 0; i < 14; i++) {
+					for (var x = 0; x < 14; x++) {//14*14 input
+						var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
+						var mesh = new THREE.Mesh(box, material);
+						mesh.position.set(-1080 + 12 * i + 400 * j, 0, -84 + 12 * x);//separate by 12
+						scene.add(mesh);
+					}
+				}
+			}
+
+			/**
+			 * 2nd convolutional layer
+			 */
+			var box = new THREE.BoxGeometry(10, 10, 10);
+			for (var j = 0; j < 16; j++) {
+				for (var i = 0; i < 10; i++) {
+					for (var x = 0; x < 10; x++) {//10*10 input
+						var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
+						var mesh = new THREE.Mesh(box, material);
+						mesh.position.set(-1180 + 12 * i + 150 * j, 150, -60 + 12 * x);//separate by 12
+						scene.add(mesh);
+					}
+				}
+			}
+
+			/**
+			 * 2nd downsampling layer
+			 */
+			var box = new THREE.BoxGeometry(10, 10, 10);
+			for (var j = 0; j < 16; j++) {
+				for (var i = 0; i < 5; i++) {
+					for (var x = 0; x < 5; x++) {//5*5 input
+						var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
+						var mesh = new THREE.Mesh(box, material);
+						mesh.position.set(-1150 + 12 * i + 150 * j, 300, -30 + 12 * x);//separate by 2
+						scene.add(mesh);
+					}
+				}
+			}
+
+			/**
+			 * 1st fullyconnected layer
+			 */
+			var box = new THREE.BoxGeometry(10, 10, 10);
+			for (var x = 0; x < 120; x++) {//120 input
 				var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
 				var mesh = new THREE.Mesh(box, material);
-				mesh.position.set(-192 + 12 * i, -300, -192 + 12 * x);//separate by 2
+				mesh.position.set(-600 + 10 * x, 450, 0);
 				scene.add(mesh);
 			}
-		}
 
-		/**
-		 * 1st convolutional layer
-		 */
-		var box = new THREE.BoxGeometry(10, 10, 10);
-		for (var j = 0; j < 6; j++) {
-			for (var i = 0; i < 28; i++) {
-				for (var x = 0; x < 28; x++) {//28*28 input
-					var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
-					var mesh = new THREE.Mesh(box, material);
-					mesh.position.set(-1164 + 12 * i + 400 * j, -150, -168 + 12 * x);//separate by 12
-					scene.add(mesh);
-				}
+			/**
+			 * 2nd fullyconnected layer
+			 */
+			var box = new THREE.BoxGeometry(10, 10, 10);
+			for (var x = 0; x < 100; x++) {//100 input
+				var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
+				var mesh = new THREE.Mesh(box, material);
+				mesh.position.set(-500 + 10 * x, 600, 0);
+				scene.add(mesh);
 			}
-		}
 
-		/**
-		 * 1st downsampling layer
-		 */
-		var box = new THREE.BoxGeometry(10, 10, 10);
-		for (var j = 0; j < 6; j++) {
-			for (var i = 0; i < 14; i++) {
-				for (var x = 0; x < 14; x++) {//14*14 input
-					var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
-					var mesh = new THREE.Mesh(box, material);
-					mesh.position.set(-1080 + 12 * i + 400 * j, 0, -84 + 12 * x);//separate by 12
-					scene.add(mesh);
-				}
+			/**
+			 * Output layer
+			 */
+			var box = new THREE.BoxGeometry(10, 10, 10);
+			for (var x = 0; x < 10; x++) {//10 output
+				var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
+				var mesh = new THREE.Mesh(box, material);
+				mesh.position.set(-60 + 12 * x, 750, 0);
+				scene.add(mesh);
 			}
-		}
 
-		/**
-		 * 2nd convolutional layer
-		 */
-		var box = new THREE.BoxGeometry(10, 10, 10);
-		for (var j = 0; j < 16; j++) {
-			for (var i = 0; i < 10; i++) {
-				for (var x = 0; x < 10; x++) {//10*10 input
-					var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
-					var mesh = new THREE.Mesh(box, material);
-					mesh.position.set(-1180 + 12 * i + 150 * j, 150, -60 + 12 * x);//separate by 12
-					scene.add(mesh);
-				}
+
+
+			var width = window.innerWidth;
+			var height = window.innerHeight;
+			var k = width / height;
+			var s = 200;
+
+			var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
+			camera.position.z = 1000;
+			camera.position.y = 200;
+			//camera.lookAt(scene.position);
+
+
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize(width, height);
+			renderer.setClearColor(0xb9d3ff, 1);
+			//	render.shadowMap.Enabled = true;
+			document.body.appendChild(renderer.domElement);
+			// 渲染函数
+			function render() {
+				renderer.render(scene, camera);//执行渲染操作
+				requestAnimationFrame(render);//请求再次执行渲染函数render
 			}
-		}
+			render();
+			var controls = new THREE.OrbitControls(camera, renderer.domElement);//创建控件对象
 
-		/**
-		 * 2nd downsampling layer
-		 */
-		var box = new THREE.BoxGeometry(10, 10, 10);
-		for (var j = 0; j < 16; j++) {
-			for (var i = 0; i < 5; i++) {
-				for (var x = 0; x < 5; x++) {//5*5 input
-					var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
-					var mesh = new THREE.Mesh(box, material);
-					mesh.position.set(-1150 + 12 * i + 150 * j, 300, -30 + 12 * x);//separate by 2
-					scene.add(mesh);
-				}
-			}
-		}
-
-		/**
-		 * 1st fullyconnected layer
-		 */
-		var box = new THREE.BoxGeometry(10, 10, 10);
-		for (var x = 0; x < 120; x++) {//120 input
-			var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
-			var mesh = new THREE.Mesh(box, material);
-			mesh.position.set(-600 + 10*x , 450, 0);
-			scene.add(mesh);
-		}
-
-		/**
-		 * 2nd fullyconnected layer
-		 */
-		 var box = new THREE.BoxGeometry(10, 10, 10);
-		for (var x = 0; x < 100; x++) {//100 input
-			var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
-			var mesh = new THREE.Mesh(box, material);
-			mesh.position.set(-500 + 10*x , 600, 0);
-			scene.add(mesh);
-		}
-
-		/**
-		 * Output layer
-		 */
-		 var box = new THREE.BoxGeometry(10, 10, 10);
-		for (var x = 0; x < 10; x++) {//10 output
-			var material = new THREE.MeshLambertMaterial({ color: 0x000000 });//black
-			var mesh = new THREE.Mesh(box, material);
-			mesh.position.set(-60 + 12*x , 750, 0);
-			scene.add(mesh);
-		}
-
-
-
-		var width = window.innerWidth;
-		var height = window.innerHeight;
-		var k = width / height;
-		var s = 200;
-
-		var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
-		camera.position.z = 1000;
-		camera.position.y = 200;
-		//camera.lookAt(scene.position);
-
-
-		var renderer = new THREE.WebGLRenderer();
-		renderer.setSize(width, height);
-		renderer.setClearColor(0xb9d3ff, 1);
-		//	render.shadowMap.Enabled = true;
-		document.body.appendChild(renderer.domElement);
-		// 渲染函数
-		function render() {
-			renderer.render(scene, camera);//执行渲染操作
-			requestAnimationFrame(render);//请求再次执行渲染函数render
-		}
-		render();
-		var controls = new THREE.OrbitControls(camera, renderer.domElement);//创建控件对象
-
-	</script>
+		</script>
 </body>
 
 </html>
